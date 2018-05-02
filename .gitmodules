@@ -1,0 +1,3 @@
+[submodule "casper"]
+	path = casper
+	url = git@github.com:ethereum/casper.git

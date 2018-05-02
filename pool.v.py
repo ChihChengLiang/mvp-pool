@@ -20,19 +20,12 @@ class Casper():
     @public
     def withdraw(validator_index: int128): pass
 
-class Withdraw():
-    # @public
-    # def __receive__(): pass
-
-    @public
-    def claim(addr: address, ratio: decimal): pass
 
 DEPOSIT_START: public(timestamp)
 DEPOSIT_END: public(timestamp)
 VALIDATION_START: public(timestamp)
 VALIDATION_END: public(timestamp)
 CASPER_ADDR: public(address)
-WITHDRAWAL_ADDR: public(address)
 VOTER: address
 depositors: public({
     withdraw_addr:address,
@@ -42,14 +35,13 @@ total_shares: public(int128(wei))
 next_depositor_index: public(int128)
 depositor_indexes: public(int128[address])
 validation_addr: public(address)
+final_balance: public(int128(wei))
 
 
 @public
-def __init__(casper_addr: address, withdrawal_addr: address,
-             deposit_start:timestamp, deposit_time:timedelta,
+def __init__(casper_addr: address, deposit_start:timestamp, deposit_time:timedelta,
              validation_time:timedelta, voter:address):
     self.CASPER_ADDR = casper_addr
-    self.WITHDRAWAL_ADDR = withdrawal_addr
     self.DEPOSIT_START = deposit_start
     self.DEPOSIT_END = deposit_start + deposit_time
     self.VALIDATION_START = self.DEPOSIT_END + 86400 # 1 day
@@ -83,7 +75,7 @@ def deposit_to_casper():
     assert not self.validation_addr
     # Vyper has no fallback function at this moment, might use __receive__() in the future
     # https://github.com/ethereum/vyper/issues/781
-    Casper(self.CASPER_ADDR).deposit(self.validation_addr, self.WITHDRAWAL_ADDR, value=self.balance)
+    Casper(self.CASPER_ADDR).deposit(self.validation_addr, self, value=self.balance)
 
 @public
 def logout_from_casper(logout_msg: bytes <= 1024):
@@ -94,8 +86,9 @@ def logout_from_casper(logout_msg: bytes <= 1024):
 def withdraw_from_casper():
     validator_index: int128 = Casper(self.CASPER_ADDR).validator_indexes(self.validation_addr)
     Casper(self.CASPER_ADDR).withdraw(validator_index)
+    self.final_balance = self.balance
 
 @public
 def withdraw_from_pool(depositor_index:int128):
     ratio: decimal = self.depositors[depositor_index].shares / self.total_shares
-    Withdraw(self.WITHDRAWAL_ADDR).claim(self.depositors[depositor_index].withdraw_addr, ratio)
+    send(self.depositors[depositor_index].withdraw_addr, floor(ratio * self.final_balance))
