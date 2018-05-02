@@ -301,7 +301,7 @@ def casper_chain(
 
 @pytest.fixture
 def pool_code():
-    with open('./pool.v.py') as f:
+    with open('./contracts/pool.v.py') as f:
         return f.read()
 
 @pytest.fixture
