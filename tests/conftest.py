@@ -314,6 +314,24 @@ def pool_ct(pool_abi):
     return ContractTranslator(pool_abi)
 
 @pytest.fixture
+def pool_address(dependency_transactions, base_sender_privkey):
+    mock_tx = Transaction(
+        len(dependency_transactions) + 1, # 1 for casper contract
+        GAS_PRICE,
+        500000,
+        b'',
+        0,
+        "0x0"
+    ).sign(base_sender_privkey)
+    return mock_tx.creates
+
+@pytest.fixture
+def pool(casper_chain, pool_abi, pool_address):
+    return tester.ABIContract(casper_chain, pool_abi, pool_address)
+
+
+
+@pytest.fixture
 def deposit_start():
     return 10
 
