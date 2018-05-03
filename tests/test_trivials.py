@@ -23,9 +23,6 @@ def test_deposit_to_pool(casper, new_epoch, pool, funded_privkey, deposit_amount
     pool.deposit_to_pool(withdraw_addr, value=depositor_deposit_amount)
 
 
-def test_register_validation_addr(): pass
-
-
 def test_deposit_to_casper(): pass
 
 

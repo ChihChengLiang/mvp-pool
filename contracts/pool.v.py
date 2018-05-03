@@ -39,7 +39,6 @@ depositors: public({
 total_shares: public(int128(wei))
 next_depositor_index: public(int128)
 depositor_indexes: public(int128[address])
-validation_addr: public(address)
 final_balance: public(int128(wei))
 
 
@@ -71,36 +70,24 @@ def deposit_to_pool(withdraw_addr: address):
 
 
 @public
-def register_validation_addr(addr: address):
-    # verify purity
-    assert extract32(
-        raw_call(
-            Casper(self.CASPER_ADDR).PURITY_CHECKER(),
-            concat('\xa1\x90\x3e\xab', convert(addr, 'bytes32')),
-            gas=500000, outsize=32),
-        0) != convert(0, 'bytes32')
-    self.validation_addr = addr
-
-
-@public
-def deposit_to_casper():
+def deposit_to_casper(validation_addr: address):
+    assert msg.sender == self.OPERATOR  # Only the operator can do this
     assert block.timestamp >= self.DEPOSIT_END and block.timestamp < self.VALIDATION_START
-    assert not self.validation_addr
     assert self.balance > Casper(self.CASPER_ADDR).MIN_DEPOSIT_SIZE()
-    Casper(self.CASPER_ADDR).deposit(
-        self.validation_addr, self, value=self.balance)
+    Casper(self.CASPER_ADDR).deposit(validation_addr, self, value=self.balance)
 
 
 @public
 def logout_from_casper(logout_msg: bytes <= 1024):
+    # Assuming only the operator can sign the logout msg right
     assert block.timestamp >= self.VALIDATION_END
     Casper(self.CASPER_ADDR).logout(logout_msg)
 
 
 @public
 def withdraw_from_casper():
-    validator_index: int128 = Casper(
-        self.CASPER_ADDR).validator_indexes(self.validation_addr)
+    # Anyone, anytime
+    validator_index: int128 = Casper(self.CASPER_ADDR).validator_indexes(self)
     Casper(self.CASPER_ADDR).withdraw(validator_index)
     self.final_balance = self.balance
 
