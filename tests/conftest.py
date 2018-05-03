@@ -37,8 +37,6 @@ VALIDATOR_DEPOSIT_AMOUNTS = [
 ]
 
 
-
-
 @pytest.fixture
 def fake_hash():
     return b'\xbc' * 32
@@ -284,7 +282,7 @@ def casper_chain(
     nonce += 1
 
     test_chain.mine(1)
-    
+
     pool_bytecode = compiler.compile(pool_code)
     pool_init_args = pool_ct.encode_constructor_arguments(pool_args)
     pool_deploy_code = pool_bytecode + (pool_init_args)
@@ -297,15 +295,17 @@ def casper_chain(
         pool_deploy_code
     ).sign(base_sender_privkey)
     test_chain.direct_tx(pool_tx)
-    
+
     test_chain.mine(1)
 
     return test_chain
+
 
 @pytest.fixture
 def pool_code():
     with open('./contracts/pool.v.py') as f:
         return f.read()
+
 
 @pytest.fixture
 def pool_abi(pool_code):
@@ -316,10 +316,11 @@ def pool_abi(pool_code):
 def pool_ct(pool_abi):
     return ContractTranslator(pool_abi)
 
+
 @pytest.fixture
 def pool_address(dependency_transactions, base_sender_privkey):
     mock_tx = Transaction(
-        len(dependency_transactions) + 1, # 1 for casper contract
+        len(dependency_transactions) + 1,  # 1 for casper contract
         GAS_PRICE,
         500000,
         b'',
@@ -328,9 +329,11 @@ def pool_address(dependency_transactions, base_sender_privkey):
     ).sign(base_sender_privkey)
     return mock_tx.creates
 
+
 @pytest.fixture
 def pool(casper_chain, pool_abi, pool_address):
     return tester.ABIContract(casper_chain, pool_abi, pool_address)
+
 
 @pytest.fixture(params=DEPOSITOR_PRIVKEYS[0:1])
 def depositor_privkey(request):
@@ -341,21 +344,26 @@ def depositor_privkey(request):
 def depositor_privkeys():
     return DEPOSITOR_PRIVKEYS
 
+
 @pytest.fixture
 def depositor_deposit_amount(min_deposit_size):
     return int(min_deposit_size / 5)
+
 
 @pytest.fixture
 def deposit_start():
     return 10
 
+
 @pytest.fixture
 def deposit_time():
     return 10 * EPOCH_LENGTH
 
+
 @pytest.fixture
 def validation_time():
     return 10 * EPOCH_LENGTH
+
 
 @pytest.fixture
 def voter():
@@ -371,6 +379,7 @@ def pool_config(deposit_start, deposit_time, validation_time, voter):
         "voter": voter
     }
 
+
 @pytest.fixture
 def pool_args(pool_config, casper_address):
     return [
@@ -378,13 +387,15 @@ def pool_args(pool_config, casper_address):
         pool_config["validation_time"], pool_config["voter"]
     ]
 
+
 @pytest.fixture
 def new_epoch(casper_chain, casper):
     def new_epoch():
         next_epoch = casper.current_epoch() + 1
         epoch_length = casper.EPOCH_LENGTH()
 
-        casper_chain.mine(epoch_length * next_epoch - casper_chain.head_state.block_number)
+        casper_chain.mine(epoch_length * next_epoch -
+                          casper_chain.head_state.block_number)
         casper.initialize_epoch(next_epoch)
     return new_epoch
 
@@ -400,14 +411,15 @@ def mk_validation_code():
 def mk_vote():
     def mk_vote(validator_index, target_hash, target_epoch, source_epoch, privkey):
         sighash = utils.sha3(
-            rlp.encode([validator_index, target_hash, target_epoch, source_epoch])
+            rlp.encode([validator_index, target_hash,
+                        target_epoch, source_epoch])
         )
         v, r, s = utils.ecdsa_raw_sign(sighash, privkey)
-        sig = utils.encode_int32(v) + utils.encode_int32(r) + utils.encode_int32(s)
+        sig = utils.encode_int32(v) +
+            utils.encode_int32(r) +
+            utils.encode_int32(s)
         return rlp.encode([validator_index, target_hash, target_epoch, source_epoch, sig])
     return mk_vote
-
-
 
 
 @pytest.fixture
@@ -415,7 +427,9 @@ def mk_logout():
     def mk_logout(validator_index, epoch, key):
         sighash = utils.sha3(rlp.encode([validator_index, epoch]))
         v, r, s = utils.ecdsa_raw_sign(sighash, key)
-        sig = utils.encode_int32(v) + utils.encode_int32(r) + utils.encode_int32(s)
+        sig = utils.encode_int32(v) +
+            utils.encode_int32(r) +
+            utils.encode_int32(s)
         return rlp.encode([validator_index, epoch, sig])
     return mk_logout
 
@@ -486,8 +500,11 @@ def induct_validators(casper_chain, casper, deposit_validator, new_epoch):
         return list(range(start_index, start_index + len(privkeys)))
     return induct_validators
 
+
 @pytest.fixture
-def induct_validators_and_depositors(casper_chain, casper, deposit_validator, new_epoch): pass
+def induct_validators_and_depositors(
+    casper_chain, casper, deposit_validator, new_epoch): pass
+
 
 @pytest.fixture
 def assert_failed():
@@ -506,15 +523,17 @@ def assert_tx_failed(casper_chain):
         casper_chain.revert(initial_state)
     return assert_tx_failed
 
+
 @pytest.fixture
 def get_logs():
     def get_logs(receipt, contract, event_name=None):
-        contract_log_ids = contract.translator.event_data.keys() # All the log ids contract has
+        # All the log ids contract has
+        contract_log_ids = contract.translator.event_data.keys()
         # All logs originating from contract, and matching event_name (if specified)
-        logs = [log for log in receipt.logs \
-                if log.topics[0] in contract_log_ids and \
-                log.address == contract.address and \
-                (not event_name or \
+        logs = [log for log in receipt.logs
+                if log.topics[0] in contract_log_ids and
+                log.address == contract.address and
+                (not event_name or
                  contract.translator.event_data[log.topics[0]]['name'] == event_name)]
         assert len(logs) > 0, "No logs in last receipt"
 
@@ -522,10 +541,12 @@ def get_logs():
         return [contract.translator.decode_event(log.topics, log.data) for log in logs]
     return get_logs
 
+
 @pytest.fixture
 def get_last_log(get_logs):
     def get_last_log(casper_chain, contract, event_name=None):
-        receipt = casper_chain.head_state.receipts[-1] # Only the receipts for the last block
+        # Only the receipts for the last block
+        receipt = casper_chain.head_state.receipts[-1]
         # Get last log event with correct name and return the decoded event
         return get_logs(receipt, contract, event_name=event_name)[-1]
     return get_last_log

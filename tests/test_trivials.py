@@ -1,6 +1,7 @@
 from ethereum.tools import tester
 from ethereum import utils
 
+
 def test_init_first_epoch(casper, new_epoch):
     assert casper.current_epoch() == 0
     assert casper.next_validator_index() == 1
