@@ -1,4 +1,5 @@
 from ethereum.tools import tester
+from ethereum import utils
 
 def test_init_first_epoch(casper, new_epoch):
     assert casper.current_epoch() == 0
@@ -12,9 +13,10 @@ def test_init_first_epoch(casper, new_epoch):
 
 
 def test_deposit_to_pool(casper, new_epoch, pool, funded_privkey, deposit_amount,
-                                 induct_validator):
+                         depositor_privkey, depositor_deposit_amount, induct_validator):
     validator_index = induct_validator(funded_privkey, deposit_amount)
 
     new_epoch()
+    withdraw_addr = utils.privtoaddr(depositor_privkey)
 
-    pool.deposit_to_pool(tester.a1, value=5000)
+    pool.deposit_to_pool(withdraw_addr, value=depositor_deposit_amount)

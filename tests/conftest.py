@@ -28,11 +28,14 @@ BASE_INTEREST_FACTOR = 0.02
 BASE_PENALTY_FACTOR = 0.002
 MIN_DEPOSIT_SIZE = 1000 * 10**18  # 1000 ether
 
-FUNDED_PRIVKEYS = [tester.k1, tester.k2, tester.k3, tester.k4, tester.k5]
-DEPOSIT_AMOUNTS = [
-    2000 * 10**18,
-    # 1000 * 10**18,
+VALIDATOR_FUNDED_PRIVKEYS = [tester.k1, tester.k2, tester.k3, tester.k4]
+
+DEPOSITOR_PRIVKEYS = [tester.k5, tester.k6, tester.k7, tester.k8, tester.k9]
+
+VALIDATOR_DEPOSIT_AMOUNTS = [
+    2000 * 10**18
 ]
+
 
 
 
@@ -46,17 +49,17 @@ def base_sender_privkey():
     return tester.k0
 
 
-@pytest.fixture(params=FUNDED_PRIVKEYS[0:1])
+@pytest.fixture(params=VALIDATOR_FUNDED_PRIVKEYS[0:1])
 def funded_privkey(request):
     return request.param
 
 
 @pytest.fixture
 def funded_privkeys():
-    return FUNDED_PRIVKEYS
+    return VALIDATOR_FUNDED_PRIVKEYS
 
 
-@pytest.fixture(params=DEPOSIT_AMOUNTS)
+@pytest.fixture(params=VALIDATOR_DEPOSIT_AMOUNTS)
 def deposit_amount(request):
     return request.param
 
@@ -329,7 +332,18 @@ def pool_address(dependency_transactions, base_sender_privkey):
 def pool(casper_chain, pool_abi, pool_address):
     return tester.ABIContract(casper_chain, pool_abi, pool_address)
 
+@pytest.fixture(params=DEPOSITOR_PRIVKEYS[0:1])
+def depositor_privkey(request):
+    return request.param
 
+
+@pytest.fixture
+def depositor_privkeys():
+    return DEPOSITOR_PRIVKEYS
+
+@pytest.fixture
+def depositor_deposit_amount(min_deposit_size):
+    return int(min_deposit_size / 5)
 
 @pytest.fixture
 def deposit_start():
@@ -472,6 +486,8 @@ def induct_validators(casper_chain, casper, deposit_validator, new_epoch):
         return list(range(start_index, start_index + len(privkeys)))
     return induct_validators
 
+@pytest.fixture
+def induct_validators_and_depositors(casper_chain, casper, deposit_validator, new_epoch): pass
 
 @pytest.fixture
 def assert_failed():

@@ -1,7 +1,12 @@
 class Casper():
+    @public
     @constant
     def PURITY_CHECKER() -> address: pass
     
+    @public
+    @constant
+    def MIN_DEPOSIT_SIZE() -> wei_value: pass
+
     @public
     @constant
     def current_epoch() -> int128: pass
@@ -19,6 +24,7 @@ class Casper():
 
     @public
     def withdraw(validator_index: int128): pass
+
 
 
 DEPOSIT_START: public(timestamp)
@@ -73,6 +79,7 @@ def register_validation_addr(addr: address):
 def deposit_to_casper():
     assert block.timestamp >= self.DEPOSIT_END and block.timestamp < self.VALIDATION_START
     assert not self.validation_addr
+    assert self.balance > Casper(self.CASPER_ADDR).MIN_DEPOSIT_SIZE()
     # Vyper has no fallback function at this moment, might use __receive__() in the future
     # https://github.com/ethereum/vyper/issues/781
     Casper(self.CASPER_ADDR).deposit(self.validation_addr, self, value=self.balance)
