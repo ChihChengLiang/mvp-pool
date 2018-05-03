@@ -415,8 +415,8 @@ def mk_vote():
                         target_epoch, source_epoch])
         )
         v, r, s = utils.ecdsa_raw_sign(sighash, privkey)
-        sig = utils.encode_int32(v) +
-            utils.encode_int32(r) +
+        sig = utils.encode_int32(v) + \
+            utils.encode_int32(r) + \
             utils.encode_int32(s)
         return rlp.encode([validator_index, target_hash, target_epoch, source_epoch, sig])
     return mk_vote
@@ -427,8 +427,8 @@ def mk_logout():
     def mk_logout(validator_index, epoch, key):
         sighash = utils.sha3(rlp.encode([validator_index, epoch]))
         v, r, s = utils.ecdsa_raw_sign(sighash, key)
-        sig = utils.encode_int32(v) +
-            utils.encode_int32(r) +
+        sig = utils.encode_int32(v) + \
+            utils.encode_int32(r) + \
             utils.encode_int32(s)
         return rlp.encode([validator_index, epoch, sig])
     return mk_logout
