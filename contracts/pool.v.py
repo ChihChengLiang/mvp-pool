@@ -26,10 +26,10 @@ class Casper():
     def withdraw(validator_index: int128): pass
 
 
-DEPOSIT_START: public(timestamp)
-DEPOSIT_END: public(timestamp)
-VALIDATION_START: public(timestamp)
-VALIDATION_END: public(timestamp)
+DEPOSIT_START: public(int128)
+DEPOSIT_END: public(int128)
+VALIDATION_START: public(int128)
+VALIDATION_END: public(int128)
 CASPER_ADDR: public(address)
 OPERATOR: address
 depositors: public({
@@ -43,12 +43,12 @@ final_balance: public(int128(wei))
 
 
 @public
-def __init__(casper_addr: address, deposit_start: timestamp, deposit_time: timedelta,
-             validation_time: timedelta, operator: address):
+def __init__(casper_addr: address, deposit_start: int128, deposit_time: int128,
+             validation_time: int128, operator: address):
     self.CASPER_ADDR = casper_addr
     self.DEPOSIT_START = deposit_start
     self.DEPOSIT_END = deposit_start + deposit_time
-    self.VALIDATION_START = self.DEPOSIT_END + 86400  # 1 day
+    self.VALIDATION_START = self.DEPOSIT_END + 7200  # 1 day of blocks
     self.VALIDATION_END = self.VALIDATION_START + validation_time
     self.OPERATOR = operator
     self.next_depositor_index = 1
@@ -59,7 +59,7 @@ def __init__(casper_addr: address, deposit_start: timestamp, deposit_time: timed
 @payable
 def deposit_to_pool(withdraw_addr: address):
     assert not self.depositor_indexes[withdraw_addr]
-    assert block.timestamp >= self.DEPOSIT_START and block.timestamp < self.DEPOSIT_END
+    assert block.number >= self.DEPOSIT_START and block.number < self.DEPOSIT_END
     self.depositors[self.next_depositor_index] = {
         withdraw_addr: withdraw_addr,
         shares: msg.value
@@ -72,7 +72,7 @@ def deposit_to_pool(withdraw_addr: address):
 @public
 def deposit_to_casper(validation_addr: address):
     assert msg.sender == self.OPERATOR  # Only the operator can do this
-    assert block.timestamp >= self.DEPOSIT_END and block.timestamp < self.VALIDATION_START
+    assert block.number >= self.DEPOSIT_END and block.number < self.VALIDATION_START
     assert self.balance > Casper(self.CASPER_ADDR).MIN_DEPOSIT_SIZE()
     Casper(self.CASPER_ADDR).deposit(validation_addr, self, value=self.balance)
 
@@ -80,7 +80,7 @@ def deposit_to_casper(validation_addr: address):
 @public
 def logout_from_casper(logout_msg: bytes <= 1024):
     # Assuming only the operator can sign the logout msg right
-    assert block.timestamp >= self.VALIDATION_END
+    assert block.number >= self.VALIDATION_END
     Casper(self.CASPER_ADDR).logout(logout_msg)
 
 

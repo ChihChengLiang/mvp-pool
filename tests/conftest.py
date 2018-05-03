@@ -30,7 +30,7 @@ MIN_DEPOSIT_SIZE = 1000 * 10**18  # 1000 ether
 
 VALIDATOR_FUNDED_PRIVKEYS = [tester.k1, tester.k2, tester.k3, tester.k4]
 
-DEPOSITOR_PRIVKEYS = [tester.k5, tester.k6, tester.k7, tester.k8, tester.k9]
+DEPOSITOR_PRIVKEYS = [tester.k5, tester.k6, tester.k7, tester.k8]
 
 VALIDATOR_DEPOSIT_AMOUNTS = [
     2000 * 10**18
@@ -320,7 +320,8 @@ def pool_ct(pool_abi):
 @pytest.fixture
 def pool_address(dependency_transactions, base_sender_privkey):
     mock_tx = Transaction(
-        len(dependency_transactions) + 1,  # 1 for casper contract
+        # 2 for casper contract and the funding tx
+        len(dependency_transactions) + 2,
         GAS_PRICE,
         500000,
         b'',
@@ -347,7 +348,7 @@ def depositor_privkeys():
 
 @pytest.fixture
 def depositor_deposit_amount(min_deposit_size):
-    return int(min_deposit_size / 5)
+    return min_deposit_size
 
 
 @pytest.fixture
@@ -367,7 +368,7 @@ def validation_time():
 
 @pytest.fixture
 def operator():
-    return tester.a1
+    return tester.a9
 
 
 @pytest.fixture
@@ -502,8 +503,37 @@ def induct_validators(casper_chain, casper, deposit_validator, new_epoch):
 
 
 @pytest.fixture
-def induct_validators_and_depositors(
-    casper_chain, casper, deposit_validator, new_epoch): pass
+def deposit_depositor(casper_chain, pool, validation_addr):
+    def deposit_depositor(privkey, value):
+        addr = utils.privtoaddr(privkey)
+        pool.deposit_to_pool(addr, value=value)
+        return pool.depositor_indexes(addr)
+    return deposit_depositor
+
+
+@pytest.fixture
+def induct_depositors(casper_chain, pool, deposit_depositor, new_epoch):
+    def induct_depositors(privkeys, values):
+        start_index = pool.next_depositor_index()
+        for privkey, value in zip(privkeys, values):
+            deposit_depositor(privkey, value)
+        new_epoch()
+        return list(range(start_index, start_index + len(privkeys)))
+    return induct_depositors
+
+
+@pytest.fixture
+def induct_validators_and_depositors(casper_chain, pool, induct_validators, induct_depositors, funded_privkeys, deposit_amount, new_epoch):
+    def induct_validators_and_depositors(privkeys, values):
+        new_epoch()
+        induct_validators(funded_privkeys,
+                          [deposit_amount]*len(funded_privkeys))
+        assert casper_chain.chain.head.number > pool.DEPOSIT_START()
+        assert casper_chain.chain.head.number < pool.DEPOSIT_END()
+        depositor_indexes = induct_depositors(privkeys, values)
+        return depositor_indexes
+
+    return induct_validators_and_depositors
 
 
 @pytest.fixture
