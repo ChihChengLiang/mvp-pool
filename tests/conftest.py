@@ -366,17 +366,17 @@ def validation_time():
 
 
 @pytest.fixture
-def voter():
+def operator():
     return tester.a1
 
 
 @pytest.fixture
-def pool_config(deposit_start, deposit_time, validation_time, voter):
+def pool_config(deposit_start, deposit_time, validation_time, operator):
     return {
         "deposit_start": deposit_start,
         "deposit_time": deposit_time,
         "validation_time": validation_time,
-        "voter": voter
+        "operator": operator
     }
 
 
@@ -384,7 +384,7 @@ def pool_config(deposit_start, deposit_time, validation_time, voter):
 def pool_args(pool_config, casper_address):
     return [
         casper_address, pool_config["deposit_start"], pool_config["deposit_time"],
-        pool_config["validation_time"], pool_config["voter"]
+        pool_config["validation_time"], pool_config["operator"]
     ]
 
 

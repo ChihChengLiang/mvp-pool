@@ -32,7 +32,7 @@ DEPOSIT_END: public(timestamp)
 VALIDATION_START: public(timestamp)
 VALIDATION_END: public(timestamp)
 CASPER_ADDR: public(address)
-VOTER: address
+OPERATOR: address
 depositors: public({
     withdraw_addr:address,
     shares: int128(wei)
@@ -46,13 +46,13 @@ final_balance: public(int128(wei))
 
 @public
 def __init__(casper_addr: address, deposit_start:timestamp, deposit_time:timedelta,
-             validation_time:timedelta, voter:address):
+             validation_time:timedelta, operator:address):
     self.CASPER_ADDR = casper_addr
     self.DEPOSIT_START = deposit_start
     self.DEPOSIT_END = deposit_start + deposit_time
     self.VALIDATION_START = self.DEPOSIT_END + 86400 # 1 day
     self.VALIDATION_END = self.VALIDATION_START + validation_time
-    self.VOTER = voter
+    self.OPERATOR = operator
     self.next_depositor_index = 1
     self.total_shares = 0
 
@@ -80,8 +80,6 @@ def deposit_to_casper():
     assert block.timestamp >= self.DEPOSIT_END and block.timestamp < self.VALIDATION_START
     assert not self.validation_addr
     assert self.balance > Casper(self.CASPER_ADDR).MIN_DEPOSIT_SIZE()
-    # Vyper has no fallback function at this moment, might use __receive__() in the future
-    # https://github.com/ethereum/vyper/issues/781
     Casper(self.CASPER_ADDR).deposit(self.validation_addr, self, value=self.balance)
 
 @public
