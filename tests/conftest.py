@@ -358,7 +358,7 @@ def deposit_start():
 
 @pytest.fixture
 def deposit_time():
-    return 10 * EPOCH_LENGTH
+    return 5 * EPOCH_LENGTH
 
 
 @pytest.fixture
@@ -368,7 +368,11 @@ def validation_time():
 
 @pytest.fixture
 def operator():
-    return tester.a9
+    return {
+        "address": tester.a9,
+        "address_0x": utils.checksum_encode(tester.a9),
+        "key":tester.k9
+        }
 
 
 @pytest.fixture
@@ -377,7 +381,7 @@ def pool_config(deposit_start, deposit_time, validation_time, operator):
         "deposit_start": deposit_start,
         "deposit_time": deposit_time,
         "validation_time": validation_time,
-        "operator": operator
+        "operator": operator["address_0x"]
     }
 
 

@@ -73,8 +73,16 @@ def deposit_to_pool(withdraw_addr: address):
 def deposit_to_casper(validation_addr: address):
     assert msg.sender == self.OPERATOR  # Only the operator can do this
     assert block.number >= self.DEPOSIT_END and block.number < self.VALIDATION_START
-    assert self.balance > Casper(self.CASPER_ADDR).MIN_DEPOSIT_SIZE()
-    Casper(self.CASPER_ADDR).deposit(validation_addr, self, value=self.balance)
+    assert self.balance >= Casper(self.CASPER_ADDR).MIN_DEPOSIT_SIZE()
+    # Use the following when `value` is supported in Vyper
+    # Casper(self.CASPER_ADDR).deposit(validation_addr, self, value=self.balance)
+    raw_call(
+        self.CASPER_ADDR,
+        concat('\xc9\x13\xdc\xae', convert(validation_addr, 'bytes32'), convert(self, 'bytes32')),
+        gas=500000,
+        outsize=32,
+        value=self.balance
+        )
 
 
 @public
