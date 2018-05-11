@@ -352,13 +352,16 @@ def deposit_start():
 
 
 @pytest.fixture
-def deposit_time():
-    return 5 * EPOCH_LENGTH
+def deposit_to_pool_time():
+    return 4 * EPOCH_LENGTH
 
+@pytest.fixture
+def deposit_to_casper_time():
+    return 2 * EPOCH_LENGTH
 
 @pytest.fixture
 def validation_time():
-    return 10 * EPOCH_LENGTH
+    return 4 * EPOCH_LENGTH
 
 
 @pytest.fixture
@@ -371,10 +374,11 @@ def operator():
 
 
 @pytest.fixture
-def pool_config(deposit_start, deposit_time, validation_time, operator):
+def pool_config(deposit_start, deposit_to_pool_time, deposit_to_casper_time, validation_time, operator):
     return {
         "deposit_start": deposit_start,
-        "deposit_time": deposit_time,
+        "deposit_to_pool_time": deposit_to_pool_time,
+        "deposit_to_casper_time": deposit_to_casper_time,
         "validation_time": validation_time,
         "operator": operator["address_0x"]
     }
@@ -383,7 +387,8 @@ def pool_config(deposit_start, deposit_time, validation_time, operator):
 @pytest.fixture
 def pool_args(pool_config, casper_address):
     return [
-        casper_address, pool_config["deposit_start"], pool_config["deposit_time"],
+        casper_address, pool_config["deposit_start"],
+        pool_config["deposit_to_pool_time"], pool_config["deposit_to_casper_time"],
         pool_config["validation_time"], pool_config["operator"]
     ]
 
@@ -421,17 +426,22 @@ def mk_vote():
         return rlp.encode([validator_index, target_hash, target_epoch, source_epoch, sig])
     return mk_vote
 
+@pytest.fixture
+def mk_suggested_vote(casper, mk_vote):
+    def mk_suggested_vote(validator_index, privkey):
+        target_hash = casper.recommended_target_hash()
+        target_epoch = casper.current_epoch()
+        source_epoch = casper.recommended_source_epoch()
+        return mk_vote(validator_index, target_hash, target_epoch, source_epoch, privkey)
+    return mk_suggested_vote
 
 @pytest.fixture
-def mk_logout():
-    def mk_logout(validator_index, epoch, key):
-        msghash = utils.sha3(rlp.encode([validator_index, epoch]))
-        v, r, s = utils.ecdsa_raw_sign(msghash, key)
-        sig = utils.encode_int32(v) + \
-            utils.encode_int32(r) + \
-            utils.encode_int32(s)
+def mk_logout_msg_unsigned():
+    def mk_logout_msg_unsigned(validator_index, epoch):
+        v, r, s = (0, 0, 0)
+        sig = utils.encode_int32(v) + utils.encode_int32(r) + utils.encode_int32(s)
         return rlp.encode([validator_index, epoch, sig])
-    return mk_logout
+    return mk_logout_msg_unsigned
 
 
 @pytest.fixture
@@ -525,14 +535,50 @@ def induct_depositors(casper_chain, pool, deposit_depositor, new_epoch):
 def induct_validators_and_depositors(casper_chain, pool, induct_validators, induct_depositors, funded_privkeys, deposit_amount, new_epoch):
     def induct_validators_and_depositors(privkeys, values):
         new_epoch()
-        induct_validators(funded_privkeys,
+        validator_indexes = induct_validators(funded_privkeys,
                           [deposit_amount]*len(funded_privkeys))
         assert casper_chain.chain.head.number > pool.DEPOSIT_START()
         assert casper_chain.chain.head.number < pool.DEPOSIT_END()
         depositor_indexes = induct_depositors(privkeys, values)
-        return depositor_indexes
+        return validator_indexes, depositor_indexes
 
     return induct_validators_and_depositors
+
+
+@pytest.fixture
+def mine_until(casper_chain, epoch_length, new_epoch):
+    def mine_until(height):
+        blocks_to_mine = height-casper_chain.chain.head.number
+        epochs_to_go = blocks_to_mine // epoch_length
+        rest_blocks_to_mine = blocks_to_mine % epoch_length
+        for _ in range(epochs_to_go):
+            new_epoch()
+        casper_chain.mine(rest_blocks_to_mine)
+    return mine_until
+
+
+@pytest.fixture
+def deposit_to_casper(casper, pool, induct_validators_and_depositors,
+        depositor_privkeys, depositor_deposit_amount, operator, validation_addr, mine_until, new_epoch):
+    def deposit_to_casper():
+        n_depositor = len(depositor_privkeys)
+        validator_indexes, depositor_indexes = induct_validators_and_depositors(depositor_privkeys,
+                                        [int(depositor_deposit_amount/n_depositor) + 10**18]*n_depositor)
+        operator_valcode_addr = validation_addr(operator["key"])
+        mine_until(pool.DEPOSIT_END() + 1)
+        pool.deposit_to_casper(operator_valcode_addr, sender=operator["key"])
+        return validator_indexes, depositor_indexes
+    return deposit_to_casper
+
+@pytest.fixture
+def logout_from_casper(deposit_to_casper, mine_until, pool, mk_logout_msg_unsigned, casper, operator):
+    def logout_from_casper():
+        validator_indexes, depositor_indexes = deposit_to_casper()
+        mine_until(pool.VALIDATION_END() + 1)
+        logout_msg = mk_logout_msg_unsigned(pool.validator_index(), casper.current_epoch())
+        pool.logout_from_casper(logout_msg, sender=operator["key"])
+        return validator_indexes, depositor_indexes
+    return logout_from_casper
 
 
 @pytest.fixture

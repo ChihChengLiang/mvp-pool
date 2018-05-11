@@ -40,15 +40,18 @@ total_shares: public(int128(wei))
 next_depositor_index: public(int128)
 depositor_indexes: public(int128[address])
 final_balance: public(int128(wei))
-
+# The index recorded in Casper contract, meaning which validator the pool represents.
+validator_index: public(int128)
 
 @public
-def __init__(casper_addr: address, deposit_start: int128, deposit_time: int128,
-             validation_time: int128, operator: address):
+def __init__(
+    casper_addr: address, deposit_start: int128,
+    deposit_to_pool_time: int128, deposit_to_casper_time: int128,
+    validation_time: int128, operator: address):
     self.CASPER_ADDR = casper_addr
     self.DEPOSIT_START = deposit_start
-    self.DEPOSIT_END = deposit_start + deposit_time
-    self.VALIDATION_START = self.DEPOSIT_END + 7200  # 1 day of blocks
+    self.DEPOSIT_END = deposit_start + deposit_to_pool_time
+    self.VALIDATION_START = self.DEPOSIT_END + deposit_to_casper_time
     self.VALIDATION_END = self.VALIDATION_START + validation_time
     self.OPERATOR = operator
     self.next_depositor_index = 1
@@ -78,25 +81,27 @@ def deposit_to_casper(validation_addr: address):
     # Casper(self.CASPER_ADDR).deposit(validation_addr, self, value=self.balance)
     raw_call(
         self.CASPER_ADDR,
-        concat('\xc9\x13\xdc\xae', convert(validation_addr, 'bytes32'), convert(self, 'bytes32')),
+        concat('\xf9\x60\x9f\x08', convert(validation_addr, 'bytes32'), convert(self, 'bytes32')),
         gas=500000,
-        outsize=32,
+        outsize=0,
         value=self.balance
         )
+    self.validator_index = Casper(self.CASPER_ADDR).validator_indexes(self)
 
 
 @public
-def logout_from_casper(logout_msg: bytes <= 1024):
-    # Assuming only the operator can sign the logout msg right
+def logout_from_casper(logout_msg:bytes <= 1024):
+    # Any depositor or the operator can logout, when validation ends
+    assert msg.sender == self.OPERATOR or self.depositor_indexes[msg.sender] > 0
     assert block.number >= self.VALIDATION_END
+    current_epoch: int128 = Casper(self.CASPER_ADDR).current_epoch()
     Casper(self.CASPER_ADDR).logout(logout_msg)
 
 
 @public
 def withdraw_from_casper():
-    # Anyone, anytime
-    validator_index: int128 = Casper(self.CASPER_ADDR).validator_indexes(self)
-    Casper(self.CASPER_ADDR).withdraw(validator_index)
+    # Anyone, after withdraw dynasty in Casper
+    Casper(self.CASPER_ADDR).withdraw(self.validator_index)
     self.final_balance = self.balance
 
 
