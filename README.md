@@ -1,4 +1,4 @@
-# Minimalism Pool for Casper
+# A Staking Pool for Casper
 
 [![Gitter](https://badges.gitter.im/ethereum/casper.svg)](https://gitter.im/ethereum/casper?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge)
 
