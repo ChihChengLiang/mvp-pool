@@ -42,6 +42,7 @@ depositor_indexes: public(int128[address])
 final_balance: public(int128(wei))
 # The index recorded in Casper contract, meaning which validator the pool represents.
 validator_index: public(int128)
+can_withdraw_from_pool: public(bool)
 
 @public
 def __init__(
@@ -103,6 +104,7 @@ def withdraw_from_casper():
     # Anyone, after withdraw dynasty in Casper
     Casper(self.CASPER_ADDR).withdraw(self.validator_index)
     self.final_balance = self.balance
+    self.can_withdraw_from_pool = True
 
 
 @private
@@ -116,6 +118,7 @@ def delete_depositor(index: int128):
 
 @public
 def withdraw_from_pool(depositor_index: int128):
+    assert self.can_withdraw_from_pool
     ratio: decimal = self.depositors[depositor_index].shares / \
         self.total_shares
     send(self.depositors[depositor_index].withdraw_addr,
