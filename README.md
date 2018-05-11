@@ -1,5 +1,8 @@
 # Minimalism Pool for Casper
 
+[![Gitter](https://badges.gitter.im/ethereum/casper.svg)](https://gitter.im/ethereum/casper?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge)
+
+[![Build Status](https://travis-ci.org/ChihChengLiang/mvp-pool.svg?branch=master)](https://travis-ci.org/ChihChengLiang/mvp-pool)
 
 ## Motivation
 
