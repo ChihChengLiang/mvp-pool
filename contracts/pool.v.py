@@ -95,7 +95,6 @@ def logout_from_casper(logout_msg:bytes <= 1024):
     # Any depositor or the operator can logout, when validation ends
     assert msg.sender == self.OPERATOR or self.depositor_indexes[msg.sender] > 0
     assert block.number >= self.VALIDATION_END
-    current_epoch: int128 = Casper(self.CASPER_ADDR).current_epoch()
     Casper(self.CASPER_ADDR).logout(logout_msg)
 
 
