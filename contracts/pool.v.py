@@ -5,7 +5,7 @@ class Casper():
 
     @public
     @constant
-    def MIN_DEPOSIT_SIZE() -> wei_value: pass
+    def MIN_DEPOSIT_SIZE() -> int128(wei): pass
 
     @public
     @constant
@@ -32,6 +32,7 @@ VALIDATION_START: public(int128)
 VALIDATION_END: public(int128)
 CASPER_ADDR: public(address)
 OPERATOR: address
+MIN_TOTAL_DEPOSIT: public(int128(wei))
 depositors: public({
     withdraw_addr: address,
     shares: int128(wei)
@@ -48,13 +49,18 @@ can_withdraw_from_pool: public(bool)
 def __init__(
     casper_addr: address, deposit_start: int128,
     deposit_to_pool_time: int128, deposit_to_casper_time: int128,
-    validation_time: int128, operator: address):
+    validation_time: int128, operator: address,
+    min_total_deposit: int128(wei)):
     self.CASPER_ADDR = casper_addr
     self.DEPOSIT_START = deposit_start
     self.DEPOSIT_END = deposit_start + deposit_to_pool_time
     self.VALIDATION_START = self.DEPOSIT_END + deposit_to_casper_time
     self.VALIDATION_END = self.VALIDATION_START + validation_time
     self.OPERATOR = operator
+
+    assert min_total_deposit >= Casper(self.CASPER_ADDR).MIN_DEPOSIT_SIZE()
+    self.MIN_TOTAL_DEPOSIT = min_total_deposit
+
     self.next_depositor_index = 1
     self.total_shares = 0
 
@@ -77,7 +83,7 @@ def deposit_to_pool(withdraw_addr: address):
 def deposit_to_casper(validation_addr: address):
     assert msg.sender == self.OPERATOR  # Only the operator can do this
     assert block.number >= self.DEPOSIT_END and block.number < self.VALIDATION_START
-    assert self.balance >= Casper(self.CASPER_ADDR).MIN_DEPOSIT_SIZE()
+    assert self.balance >= self.MIN_TOTAL_DEPOSIT
     # Use the following when `value` is supported in Vyper
     # Casper(self.CASPER_ADDR).deposit(validation_addr, self, value=self.balance)
     raw_call(

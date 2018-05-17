@@ -372,15 +372,20 @@ def operator():
         "key":tester.k9
         }
 
+@pytest.fixture
+def min_total_deposit():
+    # Use casper MIN_DEPOSIT_SIZE as default minimum pool size
+    return MIN_DEPOSIT_SIZE
 
 @pytest.fixture
-def pool_config(deposit_start, deposit_to_pool_time, deposit_to_casper_time, validation_time, operator):
+def pool_config(deposit_start, deposit_to_pool_time, deposit_to_casper_time, validation_time, operator, min_total_deposit):
     return {
         "deposit_start": deposit_start,
         "deposit_to_pool_time": deposit_to_pool_time,
         "deposit_to_casper_time": deposit_to_casper_time,
         "validation_time": validation_time,
-        "operator": operator["address_0x"]
+        "operator": operator["address_0x"],
+        "min_total_deposit": min_total_deposit
     }
 
 
@@ -389,7 +394,7 @@ def pool_args(pool_config, casper_address):
     return [
         casper_address, pool_config["deposit_start"],
         pool_config["deposit_to_pool_time"], pool_config["deposit_to_casper_time"],
-        pool_config["validation_time"], pool_config["operator"]
+        pool_config["validation_time"], pool_config["operator"], pool_config["min_total_deposit"]
     ]
 
 
