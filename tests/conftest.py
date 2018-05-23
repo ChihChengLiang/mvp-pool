@@ -35,6 +35,8 @@ VALIDATOR_DEPOSIT_AMOUNTS = [
     2000 * 10**18
 ]
 
+MIN_INDIVIDUAL_DEPOSIT = 1 #wei
+
 
 @pytest.fixture
 def fake_hash():
@@ -380,16 +382,23 @@ def min_total_deposit():
     # Use casper MIN_DEPOSIT_SIZE as default minimum pool size
     return MIN_DEPOSIT_SIZE
 
+@pytest.fixture
+def min_individual_deposit():
+    return MIN_INDIVIDUAL_DEPOSIT
+
 
 @pytest.fixture
-def pool_config(deposit_start, deposit_to_pool_time, deposit_to_casper_time, validation_time, operator, min_total_deposit):
+def pool_config(deposit_start, deposit_to_pool_time,
+                deposit_to_casper_time, validation_time, operator,
+                min_total_deposit, min_individual_deposit):
     return {
         "deposit_start": deposit_start,
         "deposit_to_pool_time": deposit_to_pool_time,
         "deposit_to_casper_time": deposit_to_casper_time,
         "validation_time": validation_time,
         "operator": operator["address_0x"],
-        "min_total_deposit": min_total_deposit
+        "min_total_deposit": min_total_deposit,
+        "min_individual_deposit": min_individual_deposit
     }
 
 
@@ -398,7 +407,8 @@ def pool_args(pool_config, casper_address):
     return [
         casper_address, pool_config["deposit_start"],
         pool_config["deposit_to_pool_time"], pool_config["deposit_to_casper_time"],
-        pool_config["validation_time"], pool_config["operator"], pool_config["min_total_deposit"]
+        pool_config["validation_time"], pool_config["operator"],
+        pool_config["min_total_deposit"], pool_config["min_individual_deposit"]
     ]
 
 

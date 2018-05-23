@@ -33,6 +33,7 @@ VALIDATION_END: public(int128)
 CASPER_ADDR: public(address)
 OPERATOR: address
 MIN_TOTAL_DEPOSIT: public(int128(wei))
+MIN_INDIVIDUAL_DEPOSIT: public(int128(wei))
 depositors: public({
     withdraw_addr: address,
     shares: int128(wei)
@@ -45,12 +46,13 @@ final_balance: public(int128(wei))
 validator_index: public(int128)
 can_withdraw_from_pool: public(bool)
 
+
 @public
 def __init__(
     casper_addr: address, deposit_start: int128,
     deposit_to_pool_time: int128, deposit_to_casper_time: int128,
     validation_time: int128, operator: address,
-    min_total_deposit: int128(wei)):
+    min_total_deposit: int128(wei), min_individual_deposit: int128(wei)):
     self.CASPER_ADDR = casper_addr
     self.DEPOSIT_START = deposit_start
     self.DEPOSIT_END = deposit_start + deposit_to_pool_time
@@ -60,6 +62,7 @@ def __init__(
 
     assert min_total_deposit >= Casper(self.CASPER_ADDR).MIN_DEPOSIT_SIZE()
     self.MIN_TOTAL_DEPOSIT = min_total_deposit
+    self.MIN_INDIVIDUAL_DEPOSIT = min_individual_deposit
 
     self.next_depositor_index = 1
     self.total_shares = 0
@@ -68,6 +71,7 @@ def __init__(
 @public
 @payable
 def deposit_to_pool(withdraw_addr: address):
+    assert msg.value >= self.MIN_INDIVIDUAL_DEPOSIT
     assert not self.depositor_indexes[withdraw_addr]
     assert block.number >= self.DEPOSIT_START and block.number < self.DEPOSIT_END
     self.depositors[self.next_depositor_index] = {
